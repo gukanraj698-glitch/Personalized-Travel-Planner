@@ -182,6 +182,19 @@ def logout():
     flash("You have been signed out.", "info")
     return redirect("/login")
 
+@app.route("/profile")
+@login_required
+def profile_page():
+    u = current_user()
+    try:
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM bookings WHERE user_id=%s ORDER BY created_at DESC", (u["id"],))
+                bookings = cur.fetchall() or []
+    except Exception:
+        bookings = []
+    return render_template("profile.html", user=u, bookings=bookings)
+
 @app.get("/api/user/profile")
 @login_required
 def get_user_profile():
