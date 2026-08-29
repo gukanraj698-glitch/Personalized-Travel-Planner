@@ -9,24 +9,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:1234@localhost:6381/wanderly")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=15, kwargs={"row_factory": dict_row}, open=False)
 
 def get_db():
+    try:
+        if pool.closed:
+            pool.open(wait=False)
+    except Exception:
+        pass
     return pool.connection()
 
 def init_db():
-    if not pool.closed:
-        try:
+    try:
+        if pool.closed:
             pool.open(wait=True)
-        except Exception:
-            pass
-    else:
-        pool.open(wait=True)
-
-    with pool.connection() as conn:
-        with conn.cursor() as cur:
-            # 1. Users Table
-            cur.execute("""
+        with pool.connection() as conn:
+            with conn.cursor() as cur:
+                # 1. Users Table
+                cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY,
                 full_name VARCHAR(150) NOT NULL,
@@ -339,6 +342,8 @@ def init_db():
 
         # Seed initial data
         seed_data(conn)
+    except Exception as e:
+        print(f"[DB WARNING] Database init status: {e}")
 
 def seed_data(conn):
     with conn.cursor() as cur:
