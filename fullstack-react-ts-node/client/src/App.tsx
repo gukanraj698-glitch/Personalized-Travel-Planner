@@ -140,6 +140,7 @@ export default function App() {
             <button onClick={() => setTab('attractions')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${tab === 'attractions' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>Attractions 📍</button>
             <button onClick={() => setTab('dining')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${tab === 'dining' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>Dining 🍽️</button>
             <button onClick={() => setTab('planner')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${tab === 'planner' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>AI Planner</button>
+            <button onClick={() => setTab('login')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${tab === 'login' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'}`}>🔑 Sign In / Login</button>
           </nav>
 
           <div className="flex items-center gap-3">
