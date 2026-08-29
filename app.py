@@ -92,22 +92,41 @@ def page_not_found(e):
 @app.route("/app")
 @login_required
 def index():
-    with db.get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM destinations ORDER BY rating DESC")
-            destinations = cur.fetchall()
-            cur.execute("SELECT * FROM hotels ORDER BY rating DESC")
-            hotels = cur.fetchall()
-            cur.execute("SELECT * FROM attractions ORDER BY rating DESC")
-            attractions = cur.fetchall()
-            cur.execute("SELECT * FROM restaurants ORDER BY rating DESC")
-            restaurants = cur.fetchall()
-            cur.execute("SELECT * FROM flights ORDER BY price ASC")
-            flights = cur.fetchall()
-            cur.execute("SELECT * FROM tours ORDER BY rating DESC")
-            tours = cur.fetchall()
-            cur.execute("SELECT * FROM coupons WHERE is_active=true")
-            coupons = cur.fetchall()
+    destinations, hotels, attractions, restaurants, flights, tours, coupons = [], [], [], [], [], [], []
+    try:
+        with db.get_db() as conn:
+            with conn.cursor() as cur:
+                try:
+                    cur.execute("SELECT * FROM destinations ORDER BY rating DESC")
+                    destinations = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM hotels ORDER BY rating DESC")
+                    hotels = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM attractions ORDER BY rating DESC")
+                    attractions = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM restaurants ORDER BY rating DESC")
+                    restaurants = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM flights ORDER BY price ASC")
+                    flights = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM tours ORDER BY rating DESC")
+                    tours = cur.fetchall() or []
+                except Exception: pass
+                try:
+                    cur.execute("SELECT * FROM coupons WHERE is_active=true")
+                    coupons = cur.fetchall() or []
+                except Exception: pass
+    except Exception as e:
+        print(f"[INDEX ERROR]: {e}")
+
     return render_template(
         "index.html",
         destinations=destinations,

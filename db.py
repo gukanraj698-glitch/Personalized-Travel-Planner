@@ -11,42 +11,43 @@ if DATABASE_URL.startswith("postgres://"):
 IS_POSTGRES = False
 pool = None
 
-# Attempt to import psycopg and test PostgreSQL connection
+# Attempt to connect to PostgreSQL if available
 try:
     import psycopg
     from psycopg_pool import ConnectionPool
     from psycopg.rows import dict_row
 
-    # Test if PostgreSQL is reachable
-    test_conn = psycopg.connect(DATABASE_URL, connect_timeout=3)
+    test_conn = psycopg.connect(DATABASE_URL, connect_timeout=2)
     test_conn.close()
     
     pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=15, kwargs={"row_factory": dict_row}, open=True)
     IS_POSTGRES = True
-    print("[DB ENGINE] Connected successfully to PostgreSQL!")
+    print("[DB ENGINE] Connected to PostgreSQL successfully!")
 except Exception as e:
-    print(f"[DB ENGINE] PostgreSQL not available ({e}). Falling back to built-in SQLite engine.")
+    print(f"[DB ENGINE] PostgreSQL not reachable. Using embedded resilient SQLite engine.")
     IS_POSTGRES = False
 
-SQLITE_PATH = os.path.join(os.path.dirname(__file__), "wanderly_local.db")
+# Vercel / AWS Lambda has a read-only filesystem except /tmp
+if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or not os.access(".", os.W_OK):
+    SQLITE_PATH = "/tmp/wanderly_local.db"
+else:
+    SQLITE_PATH = os.path.join(os.path.dirname(__file__), "wanderly_local.db")
 
 class SQLiteCursorWrapper:
     def __init__(self, cur):
         self.cur = cur
 
     def execute(self, query, params=None):
-        # Convert %s placeholder to ? placeholder for SQLite
         q = query.replace("%s", "?")
-        # Remove PostgreSQL specific clauses
+        q = q.replace("is_active=true", "is_active=1").replace("is_active=false", "is_active=0")
         q = q.replace("ON CONFLICT (email) DO UPDATE SET role = 'admin', password_hash = EXCLUDED.password_hash, loyalty_points = 5000, tier = 'Platinum';", "")
         q = q.replace("ON CONFLICT (email) DO NOTHING;", "")
         q = q.replace("ON CONFLICT (id) DO NOTHING;", "")
-        q = q.replace("ON CONFLICT (code) DO NOTHING;", "")
-        q = q.replace("TIMESTAMPTZ", "TEXT").replace("UUID", "TEXT").replace("JSONB", "TEXT").replace("JSON", "TEXT")
+        q = q.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+        q = q.replace("TIMESTAMPTZ", "TEXT").replace("UUID", "TEXT").replace("JSONB", "TEXT").replace("JSON", "TEXT").replace("NUMERIC(10,2)", "REAL")
         
         if params is None:
             return self.cur.execute(q)
-        # Convert any dict/list params to json strings for SQLite
         clean_params = []
         for p in params:
             if isinstance(p, (dict, list)):
@@ -57,9 +58,7 @@ class SQLiteCursorWrapper:
 
     def fetchone(self):
         row = self.cur.fetchone()
-        if row is None:
-            return None
-        return dict(row)
+        return dict(row) if row is not None else None
 
     def fetchall(self):
         rows = self.cur.fetchall()
@@ -95,7 +94,6 @@ class DatabaseManager:
                 return pool.connection()
             except Exception:
                 pass
-        # SQLite fallback connection
         s_conn = sqlite3.connect(SQLITE_PATH, check_same_thread=False)
         s_conn.row_factory = sqlite3.Row
         return SQLiteConnectionWrapper(s_conn)
@@ -109,7 +107,7 @@ def init_db():
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # 1. Users Table
+                # 1. Users
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
@@ -125,7 +123,7 @@ def init_db():
                 );
                 """)
 
-                # 2. Destinations Table
+                # 2. Destinations
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS destinations (
                     id INTEGER PRIMARY KEY,
@@ -148,7 +146,79 @@ def init_db():
                 );
                 """)
 
-                # 3. Bookings Table
+                # 3. Hotels
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS hotels (
+                    id TEXT PRIMARY KEY,
+                    destination_slug TEXT,
+                    name TEXT NOT NULL,
+                    rating REAL DEFAULT 4.5,
+                    price_per_night REAL DEFAULT 2500,
+                    address TEXT,
+                    image TEXT,
+                    amenities TEXT
+                );
+                """)
+
+                # 4. Attractions
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS attractions (
+                    id TEXT PRIMARY KEY,
+                    destination_slug TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    category TEXT,
+                    rating REAL DEFAULT 4.5,
+                    entry_fee REAL DEFAULT 0,
+                    duration TEXT,
+                    best_time TEXT,
+                    description TEXT,
+                    image TEXT
+                );
+                """)
+
+                # 5. Restaurants
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS restaurants (
+                    id TEXT PRIMARY KEY,
+                    destination_slug TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    cuisine TEXT,
+                    price_tier TEXT DEFAULT '₹₹',
+                    avg_cost_for_two REAL DEFAULT 800,
+                    rating REAL DEFAULT 4.5,
+                    address TEXT,
+                    image TEXT
+                );
+                """)
+
+                # 6. Flights
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS flights (
+                    id TEXT PRIMARY KEY,
+                    airline TEXT NOT NULL,
+                    flight_number TEXT NOT NULL,
+                    departure_city TEXT NOT NULL,
+                    arrival_city TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    duration TEXT,
+                    stops TEXT DEFAULT 'Non-stop'
+                );
+                """)
+
+                # 7. Tours
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS tours (
+                    id TEXT PRIMARY KEY,
+                    destination TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    duration TEXT,
+                    price REAL NOT NULL,
+                    rating REAL DEFAULT 4.8,
+                    image TEXT
+                );
+                """)
+
+                # 8. Bookings
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS bookings (
                     id TEXT PRIMARY KEY,
@@ -167,52 +237,20 @@ def init_db():
                 );
                 """)
 
-                # 4. Attractions Table
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS attractions (
-                    id TEXT PRIMARY KEY,
-                    destination_slug TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    category TEXT,
-                    rating REAL DEFAULT 4.5,
-                    entry_fee REAL DEFAULT 0,
-                    duration TEXT,
-                    best_time TEXT,
-                    description TEXT,
-                    image TEXT
-                );
-                """)
-
-                # 5. Restaurants Table
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS restaurants (
-                    id TEXT PRIMARY KEY,
-                    destination_slug TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    cuisine TEXT,
-                    price_tier TEXT DEFAULT '₹₹',
-                    avg_cost_for_two REAL DEFAULT 800,
-                    rating REAL DEFAULT 4.5,
-                    address TEXT,
-                    image TEXT
-                );
-                """)
-
-                # 6. Coupons Table
+                # 9. Coupons
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS coupons (
-                    id INTEGER PRIMARY KEY,
-                    code TEXT UNIQUE NOT NULL,
+                    code TEXT PRIMARY KEY,
                     discount_percent INTEGER NOT NULL,
                     min_spend REAL DEFAULT 0,
                     is_active INTEGER DEFAULT 1
                 );
                 """)
 
-                # 7. Wishlists Table
+                # 10. Wishlists
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS wishlists (
-                    id INTEGER PRIMARY KEY,
+                    id SERIAL PRIMARY KEY,
                     user_id TEXT NOT NULL,
                     item_type TEXT NOT NULL,
                     item_id TEXT NOT NULL,
@@ -223,16 +261,15 @@ def init_db():
 
                 conn.commit()
 
-        # Seed initial data
         seed_data()
     except Exception as e:
-        print(f"[DB INIT STATUS]: {e}")
+        print(f"[DB INIT ERROR]: {e}")
 
 def seed_data():
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
-                # Seed Admin
+                # Seed Users
                 cur.execute("SELECT id FROM users WHERE email=%s", ('admin@wanderly.com',))
                 if not cur.fetchone():
                     cur.execute("""
@@ -240,7 +277,6 @@ def seed_data():
                     VALUES (%s, 'Wanderly Enterprise Admin', 'admin@wanderly.com', %s, 'admin', '+91 9876543210', 5000, 'Platinum')
                     """, (str(uuid.uuid4()), generate_password_hash("admin123")))
 
-                # Seed Traveller
                 cur.execute("SELECT id FROM users WHERE email=%s", ('traveller@wanderly.com',))
                 if not cur.fetchone():
                     cur.execute("""
@@ -267,21 +303,52 @@ def seed_data():
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, d)
 
+                # Seed Hotels
+                hotels = [
+                    ("H001", "pondicherry", "Le Pondy Beach Resort & Spa", 4.8, 6200, "Lake View Road, Pondicherry", "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80", "Pool, Spa, Ocean View"),
+                    ("H002", "munnar", "The Panoramic Getaway Hills", 4.9, 7800, "Chithirapuram, Munnar", "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80", "Infinity Pool, Mountain View"),
+                    ("H003", "goa", "Taj Exotica Resort & Spa", 4.9, 14500, "Benaulim, South Goa", "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80", "Private Beach, Golf, Luxury Villas"),
+                    ("H004", "jaipur", "ITC Rajputana Luxury Collection", 4.8, 8900, "Palace Road, Jaipur", "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80", "Royal Architecture, Heritage Spa")
+                ]
+                for h in hotels:
+                    cur.execute("SELECT id FROM hotels WHERE id=%s", (h[0],))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO hotels (id, destination_slug, name, rating, price_per_night, address, image, amenities) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", h)
+
+                # Seed Flights
+                flights = [
+                    ("FL001", "Air India", "AI-504", "DEL", "PNY", 4800, "2h 15m", "Non-stop"),
+                    ("FL002", "IndiGo", "6E-212", "BOM", "COK", 3900, "1h 50m", "Non-stop"),
+                    ("FL003", "Vistara", "UK-871", "DEL", "GOI", 5600, "2h 30m", "Non-stop")
+                ]
+                for f in flights:
+                    cur.execute("SELECT id FROM flights WHERE id=%s", (f[0],))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO flights (id, airline, flight_number, departure_city, arrival_city, price, duration, stops) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", f)
+
+                # Seed Tours
+                tours = [
+                    ("TR001", "Pondicherry", "French Quarter Heritage Walk & Auroville Tour", "4 Hours", 1200, 4.9, "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80"),
+                    ("TR002", "Munnar", "Kolukkumalai Tea Sunrise 4x4 Jeep Safari", "6 Hours", 2400, 4.9, "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80"),
+                    ("TR003", "Goa", "Grand Island Dolphin & Scuba Diving Cruise", "7 Hours", 3100, 4.8, "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80")
+                ]
+                for t in tours:
+                    cur.execute("SELECT id FROM tours WHERE id=%s", (t[0],))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO tours (id, destination, title, duration, price, rating, image) VALUES (%s, %s, %s, %s, %s, %s, %s)", t)
+
                 # Seed Coupons
                 coupons = [
-                    ("WANDERLY20", 20, 3000, 1),
-                    ("SUMMER15", 15, 2000, 1),
-                    ("FIRSTTRIP", 25, 4000, 1),
-                    ("VIPPLATINUM", 30, 5000, 1)
+                    ("WANDERLY20", 20, 3000, True),
+                    ("SUMMER15", 15, 2000, True),
+                    ("FIRSTTRIP", 25, 4000, True),
+                    ("VIPPLATINUM", 30, 5000, True)
                 ]
                 for c in coupons:
-                    try:
-                        cur.execute("SELECT code FROM coupons WHERE code=%s", (c[0],))
-                        if not cur.fetchone():
-                            cur.execute("INSERT INTO coupons (code, discount_percent, min_spend, is_active) VALUES (%s, %s, %s, %s)", c)
-                    except Exception:
-                        pass
+                    cur.execute("SELECT code FROM coupons WHERE code=%s", (c[0],))
+                    if not cur.fetchone():
+                        cur.execute("INSERT INTO coupons (code, discount_percent, min_spend, is_active) VALUES (%s, %s, %s, %s)", c)
 
                 conn.commit()
     except Exception as e:
-        print(f"[DB SEED STATUS]: {e}")
+        print(f"[DB SEED ERROR]: {e}")
