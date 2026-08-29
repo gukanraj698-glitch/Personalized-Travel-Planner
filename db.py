@@ -24,7 +24,7 @@ def init_db():
         with pool.connection() as conn:
             with conn.cursor() as cur:
                 # 1. Users Table
-            cur.execute("""
+                cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY,
                 full_name VARCHAR(150) NOT NULL,
