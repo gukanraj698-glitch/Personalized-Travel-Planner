@@ -9,7 +9,61 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/app.css">
   <style>
-    /* Dynamic Auth Specific Styling */
+    /* COMPREHENSIVE SELF-CONTAINED DESIGN SYSTEM */
+    :root {
+      --primary: #121d14;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --accent-light: #ecfdf5;
+      --accent-dark: #047857;
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.12);
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-serif: 'Playfair Display', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .auth-container {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    @media (max-width: 900px) {
+      .auth-container { grid-template-columns: 1fr; }
+      .auth-visual { display: none; }
+    }
+
+    /* LEFT VISUAL SIDE */
+    .auth-visual {
+      position: relative;
+      overflow: hidden;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 50px 6vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
     .auth-bg-carousel {
       position: absolute;
       inset: 0;
@@ -26,23 +80,83 @@
       transform: scale(1);
     }
     .auth-bg-slide.active {
-      opacity: 0.38;
+      opacity: 0.45;
       transform: scale(1.08);
     }
     .auth-overlay-gradient {
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(13, 22, 15, 0.95), rgba(7, 12, 8, 0.92));
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(6, 78, 59, 0.85));
       z-index: 2;
     }
+
     .auth-visual-inner {
       position: relative;
       z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      text-decoration: none;
+    }
+    .logo-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #064e3b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .auth-visual-hero h1 {
+      font-size: clamp(38px, 4vw, 56px);
+      line-height: 1.05;
+      margin: 16px 0 16px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+    }
+    .auth-visual-hero h1 em {
+      font-family: var(--font-serif);
+      font-style: italic;
+      color: #6ee7b7;
+      font-weight: 400;
+    }
+    .auth-visual-hero p {
+      color: #cbd5e1;
+      max-width: 480px;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #a7f3d0;
+      letter-spacing: 0.5px;
+    }
+
     .live-weather-pill {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(12px);
       padding: 12px 18px;
       border-radius: var(--radius-md);
       display: flex;
@@ -54,14 +168,113 @@
     .uv-badge-glow {
       background: #f59e0b;
       color: #111;
-      padding: 3px 8px;
+      padding: 2px 8px;
       border-radius: 6px;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
     }
-    .pwd-toggle-wrap {
-      position: relative;
+
+    .auth-stats-strip {
+      display: flex;
+      gap: 40px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 24px;
     }
+    .auth-stats-strip b {
+      font-size: 22px;
+      color: var(--accent);
+      display: block;
+    }
+    .auth-stats-strip span {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* RIGHT FORM SIDE */
+    .auth-form-side {
+      background: var(--bg-page);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 6vw;
+    }
+
+    .auth-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: 38px 40px;
+      width: min(480px, 100%);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .symbol-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 14px;
+      font-weight: 900;
+    }
+
+    .kicker-tag {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--accent-dark);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .auth-card-header h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .auth-card-header p {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border-light);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+      background: #f8fafc;
+    }
+    .form-group input:focus {
+      border-color: var(--accent);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .pwd-toggle-wrap { position: relative; }
     .pwd-toggle-btn {
       position: absolute;
       right: 12px;
@@ -73,26 +286,86 @@
       font-size: 16px;
       color: var(--text-muted);
     }
-    .pwd-strength-bar {
-      height: 4px;
-      border-radius: 2px;
-      background: #e2e6dd;
-      margin-top: 6px;
-      overflow: hidden;
-      display: none;
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+      display: block;
+      text-align: center;
     }
-    .pwd-strength-fill {
-      height: 100%;
-      width: 0%;
-      transition: all 0.3s ease;
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
     }
+
+    .demo-quick-login {
+      margin-top: 24px;
+      border-top: 1px solid var(--border-light);
+      padding-top: 18px;
+    }
+    .demo-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btn-demo {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-demo:hover {
+      background: #ecfdf5;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .btn-demo-admin { border-color: #fecdd3; background: #fff1f2; }
+    .btn-demo-admin:hover { background: #ffe4e6; border-color: #f43f5e; }
+    .btn-demo span { font-size: 12px; font-weight: 800; display: block; color: #1e293b; }
+    .btn-demo small { font-size: 11px; color: var(--text-muted); }
+
+    .auth-switch {
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 20px;
+    }
+    .auth-switch a {
+      color: var(--accent-dark);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
   </style>
 </head>
 <body class="auth-body">
   <div class="auth-container">
     
     <!-- DYNAMIC LEFT VISUAL SIDE WITH AMBIENT SLIDER & LIVE WEATHER/UV -->
-    <div class="auth-visual" style="position: relative; overflow: hidden;">
+    <div class="auth-visual">
       <div class="auth-bg-carousel">
         <div class="auth-bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1600&q=85');"></div>
         <div class="auth-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1600&q=85');"></div>
@@ -104,7 +377,7 @@
       <div class="auth-visual-inner">
         <a class="brand-logo" href="/">
           <span class="logo-box">✦</span>
-          <span class="logo-text" style="color:white;">WANDERLY <b style="color:var(--accent);">ENTERPRISE</b></span>
+          <span>WANDERLY <b style="color:#6ee7b7;">ENTERPRISE</b></span>
         </a>
 
         <div class="auth-visual-hero">
@@ -120,14 +393,14 @@
                 <b style="font-size: 14px;" id="weatherTemp">28°C · Sunny Coast</b>
                 <span class="uv-badge-glow" id="uvBadge">UV 6 (High)</span>
               </div>
-              <small style="color: #9eb1a0; font-size: 11px;" id="weatherSub">Humidity: 72% | Air Quality: AQI 32 (Clean & Pure)</small>
+              <small style="color: #cbd5e1; font-size: 11px;" id="weatherSub">Humidity: 72% | Air Quality: AQI 32 (Clean & Pure)</small>
             </div>
           </div>
         </div>
 
         <div class="auth-stats-strip">
           <div><b>8+</b><span>Curated Regions</span></div>
-          <div><b>100%</b><span>PostgreSQL Powered</span></div>
+          <div><b>100%</b><span>Cloud Powered</span></div>
           <div><b>24/7</b><span>Concierge Desk</span></div>
         </div>
       </div>
@@ -140,7 +413,7 @@
           <div class="symbol-circle">✦</div>
           <span class="kicker-tag">{{ 'WELCOME BACK' if mode=='login' else 'JOIN PRIVILEGE CLUB' }}</span>
           <h2>{{ 'Sign in to your account' if mode=='login' else 'Create your travel account' }}</h2>
-          <p class="text-muted">{{ 'Access your personalized tour packages, resort bookings, and enterprise rewards.' if mode=='login' else 'Register to unlock exclusive member holiday rates and 250 welcome points.' }}</p>
+          <p>{{ 'Access your personalized tour packages, resort bookings, and enterprise rewards.' if mode=='login' else 'Register to unlock exclusive member holiday rates and 250 welcome points.' }}</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -158,7 +431,7 @@
               <input type="text" name="name" required placeholder="e.g. Jane Explorer" autocomplete="name">
             </div>
             <div class="form-group">
-              <label>Phone Number (for SMS Booking Confirmations)</label>
+              <label>Phone Number (for SMS Confirmations)</label>
               <input type="tel" name="phone" placeholder="+91 98765 43210" autocomplete="tel">
             </div>
           {% endif %}
@@ -171,11 +444,8 @@
           <div class="form-group">
             <label>Password</label>
             <div class="pwd-toggle-wrap">
-              <input type="password" id="passwordInput" name="password" minlength="6" required placeholder="••••••••" autocomplete="current-password" oninput="checkStrength(this.value)">
+              <input type="password" id="passwordInput" name="password" minlength="6" required placeholder="••••••••" autocomplete="current-password">
               <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility()">👁️</button>
-            </div>
-            <div class="pwd-strength-bar" id="pwdStrengthBar">
-              <div class="pwd-strength-fill" id="pwdStrengthFill"></div>
             </div>
           </div>
 
@@ -186,14 +456,14 @@
             </div>
           {% endif %}
 
-          <button type="submit" class="btn-primary btn-block" style="margin-top: 10px;">
+          <button type="submit" class="btn-primary" style="margin-top: 10px;">
             {{ 'Sign In to Workspace' if mode=='login' else 'Create Free Account (+250 Pts)' }} →
           </button>
         </form>
 
         {% if mode == 'login' %}
           <div class="demo-quick-login">
-            <p class="kicker-tag" style="text-align: center; margin: 24px 0 10px;">ONE-CLICK DEMO TEST ACCOUNTS</p>
+            <p class="kicker-tag" style="text-align: center; margin-bottom: 10px;">ONE-CLICK DEMO TEST ACCOUNTS</p>
             <div class="demo-btn-grid">
               <button type="button" class="btn-demo" onclick="fillDemo('traveller@wanderly.com', 'password123')">
                 <span>🎒 Regular Traveller</span>
@@ -219,7 +489,6 @@
   </div>
 
   <script>
-    // Dynamic Ambient Scenery Slider with UV & Weather
     const sceneries = [
       { loc: "✦ PONDICHERRY · FRENCH WHITE TOWN", temp: "28°C · Sunny Coast", uv: "UV 6 (High)", sub: "Humidity: 72% | Air Quality: AQI 32 (Clean Marine)", icon: "☀️" },
       { loc: "✦ MUNNAR · EMERALD TEA ESTATES", temp: "18°C · Misty Mountain", uv: "UV 4 (Moderate)", sub: "Humidity: 58% | Air Quality: AQI 18 (Pristine Alpine)", icon: "⛅" },
@@ -230,6 +499,7 @@
     const slides = document.querySelectorAll('.auth-bg-slide');
 
     setInterval(() => {
+      if (!slides.length) return;
       slides[slideIdx].classList.remove('active');
       slideIdx = (slideIdx + 1) % slides.length;
       slides[slideIdx].classList.add('active');
@@ -249,27 +519,8 @@
     }
 
     function togglePasswordVisibility() {
-      const pwd = document.getElementById('passwordInput');
-      pwd.type = pwd.type === 'password' ? 'text' : 'password';
-    }
-
-    function checkStrength(val) {
-      const bar = document.getElementById('pwdStrengthBar');
-      const fill = document.getElementById('pwdStrengthFill');
-      if (!val) {
-        bar.style.display = 'none';
-        return;
-      }
-      bar.style.display = 'block';
-      let score = 0;
-      if (val.length >= 6) score += 33;
-      if (/[A-Z]/.test(val) || /[0-9]/.test(val)) score += 33;
-      if (/[^A-Za-z0-9]/.test(val) || val.length >= 10) score += 34;
-
-      fill.style.width = score + '%';
-      if (score < 40) fill.style.background = '#ef4444';
-      else if (score < 70) fill.style.background = '#f59e0b';
-      else fill.style.background = '#10b981';
+      const inp = document.getElementById('passwordInput');
+      inp.type = (inp.type === 'password') ? 'text' : 'password';
     }
   </script>
 </body>
