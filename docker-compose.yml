@@ -1,9 +1,16 @@
-# Optional only. You already have PostgreSQL installed on Windows.
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
+    container_name: wanderly_postgres
+    restart: always
     environment:
       POSTGRES_DB: wanderly
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports: ["5432:5432"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: wanderly_redis
+    restart: always
+    ports: ["6379:6379"]
