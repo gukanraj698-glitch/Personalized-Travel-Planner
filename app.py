@@ -169,33 +169,37 @@ def login():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if current_user():
-        return redirect("/")
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        phone = request.form.get("phone", "").strip()
-        password = request.form.get("password", "")
-        confirm = request.form.get("confirm", "")
-        if not name or not email or len(password) < 6:
-            flash("Please enter valid details and a password of at least 6 characters.", "error")
-        elif password != confirm:
-            flash("Passwords do not match.", "error")
-        else:
-            try:
-                uid = str(uuid.uuid4())
-                with db.get_db() as conn:
-                    with conn.cursor() as cur:
-                        cur.execute("""
-                        INSERT INTO users (id, full_name, email, password_hash, role, phone, loyalty_points, tier)
-                        VALUES (%s, %s, %s, %s, 'user', %s, 250, 'Silver')
-                        """, (uid, name, email, generate_password_hash(password), phone or None))
-                        conn.commit()
-                session["user_id"] = uid
-                flash("Account created! 250 Wanderly Loyalty Points credited.", "success")
-                return redirect("/")
-            except Exception as e:
-                flash("Email already registered. Please sign in.", "error")
+    try:
+        if current_user():
+            return redirect("/")
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            email = request.form.get("email", "").strip().lower()
+            phone = request.form.get("phone", "").strip()
+            password = request.form.get("password", "")
+            confirm = request.form.get("confirm", "")
+            if not name or not email or len(password) < 6:
+                flash("Please enter valid details and a password of at least 6 characters.", "error")
+            elif password != confirm:
+                flash("Passwords do not match.", "error")
+            else:
+                try:
+                    uid = str(uuid.uuid4())
+                    with db.get_db() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                            INSERT INTO users (id, full_name, email, password_hash, role, phone, loyalty_points, tier)
+                            VALUES (%s, %s, %s, %s, 'user', %s, 250, 'Silver')
+                            """, (uid, name, email, generate_password_hash(password), phone or None))
+                            conn.commit()
+                    session["user_id"] = uid
+                    flash("Account created! 250 Wanderly Loyalty Points credited.", "success")
+                    return redirect("/")
+                except Exception as e:
+                    flash("Email already registered. Please sign in.", "error")
+    except Exception as e:
+        print(f"[REGISTER ERROR]: {e}")
+        flash("Registration server initializing. Please try again.", "info")
     return render_template("auth.html", mode="register")
 
 @app.route("/logout")
