@@ -10,7 +10,12 @@ load_dotenv()
 
 import db
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static")
+)
 app.secret_key = os.getenv("SECRET_KEY", "wanderly-enterprise-secret-key-2026")
 
 SERVER_START_TIME = datetime.datetime.now()
@@ -81,7 +86,17 @@ def inject_context():
 def page_not_found(e):
     if request.path.startswith("/api/"):
         return jsonify(success=False, error="Endpoint not found", status_code=404), 404
-    return redirect("/")
+    return redirect("/login")
+
+@app.errorhandler(500)
+@app.errorhandler(Exception)
+def global_server_error(e):
+    print(f"[GLOBAL SERVER ERROR]: {e}")
+    if request.path.startswith("/api/"):
+        return jsonify(success=False, message="An unexpected error occurred. Please retry.", error=str(e)), 500
+    if "/login" in request.path or "/register" in request.path:
+        return render_template("auth.html", mode="login")
+    return redirect("/login")
 
 @app.route("/")
 @app.route("/index.html")
