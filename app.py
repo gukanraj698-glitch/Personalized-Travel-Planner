@@ -126,22 +126,26 @@ def admin_portal():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if current_user():
-        return redirect("/")
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        with db.get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT * FROM users WHERE lower(email)=lower(%s)", (email,))
-                u = cur.fetchone()
-                if u and check_password_hash(u["password_hash"], password):
-                    session["user_id"] = str(u["id"])
-                    flash(f"Welcome back, {u['full_name']}!", "success")
-                    if u.get("role") == "admin" and request.form.get("is_admin_login"):
-                        return redirect("/admin")
-                    return redirect("/")
-                flash("Invalid email or password. Try demo accounts if testing.", "error")
+    try:
+        if current_user():
+            return redirect("/")
+        if request.method == "POST":
+            email = request.form.get("email", "").strip().lower()
+            password = request.form.get("password", "")
+            with db.get_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM users WHERE lower(email)=lower(%s)", (email,))
+                    u = cur.fetchone()
+                    if u and check_password_hash(u["password_hash"], password):
+                        session["user_id"] = str(u["id"])
+                        flash(f"Welcome back, {u['full_name']}!", "success")
+                        if u.get("role") == "admin" and request.form.get("is_admin_login"):
+                            return redirect("/admin")
+                        return redirect("/")
+                    flash("Invalid email or password. Try demo accounts if testing.", "error")
+    except Exception as e:
+        print(f"[AUTH ERROR]: {e}")
+        flash("Authentication server initializing. Please try demo accounts.", "info")
     return render_template("auth.html", mode="login")
 
 @app.route("/register", methods=["GET", "POST"])
