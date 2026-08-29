@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wanderly Enterprise · {{ 'Sign In' if mode=='login' else 'Create Account' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <style>
+    /* Dynamic Auth Specific Styling */
+    .auth-bg-carousel {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .auth-bg-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out, transform 8s ease;
+      transform: scale(1);
+    }
+    .auth-bg-slide.active {
+      opacity: 0.38;
+      transform: scale(1.08);
+    }
+    .auth-overlay-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 22, 15, 0.95), rgba(7, 12, 8, 0.92));
+      z-index: 2;
+    }
+    .auth-visual-inner {
+      position: relative;
+      z-index: 3;
+    }
+    .live-weather-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      max-width: 440px;
+    }
+    .uv-badge-glow {
+      background: #f59e0b;
+      color: #111;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .pwd-toggle-wrap {
+      position: relative;
+    }
+    .pwd-toggle-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .pwd-strength-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: #e2e6dd;
+      margin-top: 6px;
+      overflow: hidden;
+      display: none;
+    }
+    .pwd-strength-fill {
+      height: 100%;
+      width: 0%;
+      transition: all 0.3s ease;
+    }
+  </style>
+</head>
+<body class="auth-body">
+  <div class="auth-container">
+    
+    <!-- DYNAMIC LEFT VISUAL SIDE WITH AMBIENT SLIDER & LIVE WEATHER/UV -->
+    <div class="auth-visual" style="position: relative; overflow: hidden;">
+      <div class="auth-bg-carousel">
+        <div class="auth-bg-slide active" style="background-image: url('https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1600&q=85');"></div>
+        <div class="auth-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1600&q=85');"></div>
+        <div class="auth-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1600&q=85');"></div>
+        <div class="auth-bg-slide" style="background-image: url('https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=1600&q=85');"></div>
+      </div>
+      <div class="auth-overlay-gradient"></div>
+
+      <div class="auth-visual-inner">
+        <a class="brand-logo" href="/">
+          <span class="logo-box">✦</span>
+          <span class="logo-text" style="color:white;">WANDERLY <b style="color:var(--accent);">ENTERPRISE</b></span>
+        </a>
+
+        <div class="auth-visual-hero">
+          <span class="badge-pill" id="liveSlideLocation">✦ PONDICHERRY · COASTAL RETREAT</span>
+          <h1>Your next escape<br><em>is waiting.</em></h1>
+          <p>The next-generation commercial travel OS powered by intelligent holiday package booking, verified luxury stays, and PostgreSQL data persistence.</p>
+          
+          <!-- Dynamic Live Weather & UV Index Widget -->
+          <div class="live-weather-pill">
+            <span style="font-size: 26px;" id="weatherIcon">☀️</span>
+            <div>
+              <div style="display:flex; align-items:center; gap: 8px;">
+                <b style="font-size: 14px;" id="weatherTemp">28°C · Sunny Coast</b>
+                <span class="uv-badge-glow" id="uvBadge">UV 6 (High)</span>
+              </div>
+              <small style="color: #9eb1a0; font-size: 11px;" id="weatherSub">Humidity: 72% | Air Quality: AQI 32 (Clean & Pure)</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-stats-strip">
+          <div><b>8+</b><span>Curated Regions</span></div>
+          <div><b>100%</b><span>PostgreSQL Powered</span></div>
+          <div><b>24/7</b><span>Concierge Desk</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT AUTHENTICATION CARD -->
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <div class="auth-card-header">
+          <div class="symbol-circle">✦</div>
+          <span class="kicker-tag">{{ 'WELCOME BACK' if mode=='login' else 'JOIN PRIVILEGE CLUB' }}</span>
+          <h2>{{ 'Sign in to your account' if mode=='login' else 'Create your travel account' }}</h2>
+          <p class="text-muted">{{ 'Access your personalized tour packages, resort bookings, and enterprise rewards.' if mode=='login' else 'Register to unlock exclusive member holiday rates and 250 welcome points.' }}</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" class="main-auth-form" id="authForm">
+          {% if mode == 'register' %}
+            <div class="form-group">
+              <label>Full Legal Name</label>
+              <input type="text" name="name" required placeholder="e.g. Jane Explorer" autocomplete="name">
+            </div>
+            <div class="form-group">
+              <label>Phone Number (for SMS Booking Confirmations)</label>
+              <input type="tel" name="phone" placeholder="+91 98765 43210" autocomplete="tel">
+            </div>
+          {% endif %}
+
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="emailInput" name="email" required placeholder="name@domain.com" autocomplete="email">
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="pwd-toggle-wrap">
+              <input type="password" id="passwordInput" name="password" minlength="6" required placeholder="••••••••" autocomplete="current-password" oninput="checkStrength(this.value)">
+              <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility()">👁️</button>
+            </div>
+            <div class="pwd-strength-bar" id="pwdStrengthBar">
+              <div class="pwd-strength-fill" id="pwdStrengthFill"></div>
+            </div>
+          </div>
+
+          {% if mode == 'register' %}
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input type="password" name="confirm" minlength="6" required placeholder="••••••••">
+            </div>
+          {% endif %}
+
+          <button type="submit" class="btn-primary btn-block" style="margin-top: 10px;">
+            {{ 'Sign In to Workspace' if mode=='login' else 'Create Free Account (+250 Pts)' }} →
+          </button>
+        </form>
+
+        {% if mode == 'login' %}
+          <div class="demo-quick-login">
+            <p class="kicker-tag" style="text-align: center; margin: 24px 0 10px;">ONE-CLICK DEMO TEST ACCOUNTS</p>
+            <div class="demo-btn-grid">
+              <button type="button" class="btn-demo" onclick="fillDemo('traveller@wanderly.com', 'password123')">
+                <span>🎒 Regular Traveller</span>
+                <small>traveller@wanderly.com</small>
+              </button>
+              <button type="button" class="btn-demo btn-demo-admin" onclick="fillDemo('admin@wanderly.com', 'admin123', true)">
+                <span>👑 Enterprise Admin</span>
+                <small>admin@wanderly.com</small>
+              </button>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="auth-switch">
+          {% if mode == 'login' %}
+            Don't have an account yet? <a href="/register">Create an account</a>
+          {% else %}
+            Already registered? <a href="/login">Sign in</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dynamic Ambient Scenery Slider with UV & Weather
+    const sceneries = [
+      { loc: "✦ PONDICHERRY · FRENCH WHITE TOWN", temp: "28°C · Sunny Coast", uv: "UV 6 (High)", sub: "Humidity: 72% | Air Quality: AQI 32 (Clean Marine)", icon: "☀️" },
+      { loc: "✦ MUNNAR · EMERALD TEA ESTATES", temp: "18°C · Misty Mountain", uv: "UV 4 (Moderate)", sub: "Humidity: 58% | Air Quality: AQI 18 (Pristine Alpine)", icon: "⛅" },
+      { loc: "✦ GOA · ARABIAN SEA SUNSET", temp: "30°C · Tropical Coast", uv: "UV 8 (Very High - SPF 50+)", sub: "Humidity: 76% | Air Quality: AQI 28 (Good Breeze)", icon: "🌴" },
+      { loc: "✦ GULMARG · HIMALAYAN SNOW PEAKS", temp: "10°C · Crisp Snow Valley", uv: "UV 3 (Low)", sub: "Humidity: 50% | Air Quality: AQI 15 (Pure Glacier)", icon: "❄️" }
+    ];
+    let slideIdx = 0;
+    const slides = document.querySelectorAll('.auth-bg-slide');
+
+    setInterval(() => {
+      slides[slideIdx].classList.remove('active');
+      slideIdx = (slideIdx + 1) % slides.length;
+      slides[slideIdx].classList.add('active');
+
+      const s = sceneries[slideIdx];
+      document.getElementById('liveSlideLocation').textContent = s.loc;
+      document.getElementById('weatherTemp').textContent = s.temp;
+      document.getElementById('uvBadge').textContent = s.uv;
+      document.getElementById('weatherSub').textContent = s.sub;
+      document.getElementById('weatherIcon').textContent = s.icon;
+    }, 4500);
+
+    function fillDemo(email, pass, isAdmin) {
+      document.getElementById('emailInput').value = email;
+      document.getElementById('passwordInput').value = pass;
+      document.getElementById('authForm').submit();
+    }
+
+    function togglePasswordVisibility() {
+      const pwd = document.getElementById('passwordInput');
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    }
+
+    function checkStrength(val) {
+      const bar = document.getElementById('pwdStrengthBar');
+      const fill = document.getElementById('pwdStrengthFill');
+      if (!val) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'block';
+      let score = 0;
+      if (val.length >= 6) score += 33;
+      if (/[A-Z]/.test(val) || /[0-9]/.test(val)) score += 33;
+      if (/[^A-Za-z0-9]/.test(val) || val.length >= 10) score += 34;
+
+      fill.style.width = score + '%';
+      if (score < 40) fill.style.background = '#ef4444';
+      else if (score < 70) fill.style.background = '#f59e0b';
+      else fill.style.background = '#10b981';
+    }
+  </script>
+</body>
+</html>

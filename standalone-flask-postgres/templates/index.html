@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Wanderly Enterprise · Real-Time Travel & Tourism Operations OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Leaflet Interactive Maps CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Chart.js for Real-Time Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="app-header">
+    <div class="header-left">
+      <!-- Mobile Drawer Toggle -->
+      <button class="icon-btn mobile-drawer-btn" onclick="toggleMobileDrawer()" title="Open Navigation Menu">
+        ☰
+      </button>
+
+      <a class="brand-logo" href="/" onclick="switchTab('dashboard'); return false;">
+        <span class="logo-box">✦</span>
+        <span class="logo-text">WANDERLY <b>ENTERPRISE</b></span>
+      </a>
+
+      <nav class="main-nav desktop-nav">
+        <button class="nav-tab active" data-tab="dashboard" onclick="switchTab('dashboard')">⚡ Live Dashboard</button>
+        <button class="nav-tab" data-tab="discover" onclick="switchTab('discover')">Explore</button>
+        <button class="nav-tab" data-tab="stays" onclick="switchTab('stays')">Stays & Resorts</button>
+        <button class="nav-tab" data-tab="attractions" onclick="switchTab('attractions')">Attractions 📍</button>
+        <button class="nav-tab" data-tab="dining" onclick="switchTab('dining')">Dining 🍽️</button>
+        <button class="nav-tab" data-tab="navigation" onclick="switchTab('navigation')">Map & Routes 🧭</button>
+        <button class="nav-tab" data-tab="flights" onclick="switchTab('flights')">Flights</button>
+        <button class="nav-tab" data-tab="tours" onclick="switchTab('tours')">Tours</button>
+        <button class="nav-tab" data-tab="planner" onclick="switchTab('planner')">AI Planner ✦</button>
+        <button class="nav-tab" data-tab="trips" onclick="switchTab('trips')">My Bookings</button>
+        <button class="nav-tab" data-tab="wishlist" onclick="switchTab('wishlist')">Wishlist <span id="wishlistCountBadge" class="badge-mini">0</span></button>
+        <button class="nav-tab" data-tab="rewards" onclick="switchTab('rewards')">Club Rewards</button>
+        {% if current_user and current_user.role == 'admin' %}
+          <a href="/admin" class="nav-tab admin-badge-tab">⚡ Admin Console</a>
+        {% endif %}
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <!-- Currency Switcher -->
+      <div class="currency-selector">
+        <select id="currencySelect" onchange="changeCurrency(this.value)" aria-label="Currency Selector">
+          <option value="INR" selected>₹ INR</option>
+          <option value="USD">$ USD</option>
+          <option value="EUR">€ EUR</option>
+          <option value="GBP">£ GBP</option>
+          <option value="AED">د.إ AED</option>
+        </select>
+      </div>
+
+      <!-- Theme Switcher -->
+      <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <span id="themeIcon">🌙</span>
+      </button>
+
+      <!-- Support Concierge -->
+      <button class="icon-btn concierge-header-btn" onclick="openSupportModal()" title="24/7 Concierge Desk">
+        💬
+      </button>
+
+      <!-- User Profile Dropdown -->
+      <div class="user-menu-wrap">
+        <div class="user-chip" onclick="toggleUserDropdown()">
+          <img src="{{ current_user.avatar_url or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }}" class="user-avatar" alt="Avatar">
+          <div class="user-info-text">
+            <span class="user-name">{{ current_user.full_name.split()[0] }}</span>
+            <span class="user-tier-badge">{{ current_user.tier }} Member</span>
+          </div>
+          <span class="dropdown-arrow">▾</span>
+        </div>
+
+        <div id="userDropdownMenu" class="user-dropdown-menu hidden">
+          <div class="dropdown-header">
+            <b>{{ current_user.full_name }}</b>
+            <small>{{ current_user.email }}</small>
+            <div class="points-pill">💎 {{ current_user.loyalty_points }} Loyalty Points</div>
+          </div>
+          <hr>
+          <a href="#dashboard" onclick="switchTab('dashboard'); toggleUserDropdown();">⚡ Real-Time Telemetry Hub</a>
+          <a href="#trips" onclick="switchTab('trips'); toggleUserDropdown();">🧳 My Bookings & Invoices</a>
+          <a href="#wishlist" onclick="switchTab('wishlist'); toggleUserDropdown();">❤️ Saved Wishlist</a>
+          <a href="#rewards" onclick="switchTab('rewards'); toggleUserDropdown();">🎁 Member Rewards & Perks</a>
+          {% if current_user.role == 'admin' %}
+            <a href="/admin" class="admin-link">⚡ Enterprise Admin Portal</a>
+          {% endif %}
+          <hr>
+          <a href="/logout" class="text-danger">🚪 Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PERSISTENT REAL-TIME TELEMETRY STATUS BANNER -->
+  <div class="telemetry-top-strip">
+    <div class="strip-content">
+      <div class="strip-left">
+        <span class="pulse-indicator" id="streamStatusDot"></span>
+        <b id="streamStatusText">SYSTEM STATUS: 🟢 Connected</b>
+        <span class="separator">|</span>
+        <span>DB Latency: <b id="topDbLatency">1.2 ms</b></span>
+        <span class="separator">|</span>
+        <span>Telemetry Stations: <b id="topStationCount">8 Live</b></span>
+        <span class="separator">|</span>
+        <span>Total Operations: <b id="topOpsCount">142</b></span>
+      </div>
+      <div class="strip-right">
+        <span class="last-sync-tag">Updated: <b id="topLastUpdated">Just now</b></span>
+        <button class="btn-sync-mini" onclick="syncTelemetryNow()" title="Force Live Telemetry Sync">🔄 Poll Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFF-CANVAS MOBILE DRAWER NAVIGATION -->
+  <div id="mobileDrawerOverlay" class="drawer-overlay hidden" onclick="toggleMobileDrawer()">
+    <aside class="drawer-panel" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div class="brand-logo">
+          <span class="logo-box">✦</span>
+          <span class="logo-text">WANDERLY <b>ENTERPRISE</b></span>
+        </div>
+        <button class="icon-btn" onclick="toggleMobileDrawer()">✕</button>
+      </div>
+      
+      <div class="drawer-user-card">
+        <img src="{{ current_user.avatar_url or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80' }}" class="user-avatar" alt="Avatar">
+        <div>
+          <b>{{ current_user.full_name }}</b>
+          <span class="user-tier-badge">{{ current_user.tier }} · 💎 {{ current_user.loyalty_points }} pts</span>
+        </div>
+      </div>
+
+      <nav class="drawer-nav-list">
+        <button class="drawer-nav-item active" data-tab="dashboard" onclick="switchTab('dashboard'); toggleMobileDrawer();">⚡ Live Dashboard & Telemetry</button>
+        <button class="drawer-nav-item" data-tab="discover" onclick="switchTab('discover'); toggleMobileDrawer();">🏖️ Explore Destinations</button>
+        <button class="drawer-nav-item" data-tab="stays" onclick="switchTab('stays'); toggleMobileDrawer();">🏨 Stays & Resorts</button>
+        <button class="drawer-nav-item" data-tab="attractions" onclick="switchTab('attractions'); toggleMobileDrawer();">📍 Nearby Attractions</button>
+        <button class="drawer-nav-item" data-tab="dining" onclick="switchTab('dining'); toggleMobileDrawer();">🍽️ Culinary & Dining</button>
+        <button class="drawer-nav-item" data-tab="navigation" onclick="switchTab('navigation'); toggleMobileDrawer();">🧭 Map & Geospatial Routing</button>
+        <button class="drawer-nav-item" data-tab="flights" onclick="switchTab('flights'); toggleMobileDrawer();">✈️ Flights & Transport</button>
+        <button class="drawer-nav-item" data-tab="tours" onclick="switchTab('tours'); toggleMobileDrawer();">🎒 Tours & Experiences</button>
+        <button class="drawer-nav-item" data-tab="planner" onclick="switchTab('planner'); toggleMobileDrawer();">✦ AI Smart Planner</button>
+        <button class="drawer-nav-item" data-tab="trips" onclick="switchTab('trips'); toggleMobileDrawer();">🧳 My Bookings & Invoices</button>
+        <button class="drawer-nav-item" data-tab="wishlist" onclick="switchTab('wishlist'); toggleMobileDrawer();">❤️ Saved Wishlist</button>
+        <button class="drawer-nav-item" data-tab="rewards" onclick="switchTab('rewards'); toggleMobileDrawer();">🎁 Loyalty Rewards</button>
+        {% if current_user and current_user.role == 'admin' %}
+          <a href="/admin" class="drawer-nav-item admin-drawer-item">👑 Enterprise Admin Portal</a>
+        {% endif %}
+      </nav>
+
+      <div class="drawer-footer">
+        <button class="btn-secondary btn-block" onclick="openSupportModal(); toggleMobileDrawer();">💬 24/7 Concierge Support</button>
+        <a href="/logout" class="btn-danger-outline btn-block" style="margin-top: 10px; text-align: center;">🚪 Sign Out</a>
+      </div>
+    </aside>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="app-main">
+    
+    <!-- ============================================== -->
+    <!-- TAB 0: REAL-TIME DASHBOARD & TELEMETRY HUB     -->
+    <!-- ============================================== -->
+    <section id="tab-dashboard" class="tab-pane active">
+      <div class="section-container">
+        <!-- Live Dashboard Welcome Banner -->
+        <div class="dashboard-hero-card">
+          <div class="dash-hero-left">
+            <div class="badge-pill">REAL-TIME TELEMETRY & OPERATIONS COMMAND CENTER ✦</div>
+            <h1 class="dash-hero-title">Live Travel Intelligence & System Operations</h1>
+            <p class="dash-hero-subtext">Real-time environmental sensor feeds, database latency monitoring, platform transaction stream, and direct one-click triggers for all 18 enterprise travel operations.</p>
+            
+            <div class="dash-quick-actions">
+              <button class="btn-primary" onclick="switchTab('discover')">🔍 Search Destinations</button>
+              <button class="btn-secondary" onclick="runDiagnosticsSelfTest()">▶ Run System Self-Test</button>
+              <button class="btn-secondary" onclick="switchTab('planner')">✦ Launch AI Planner</button>
+            </div>
+          </div>
+
+          <div class="dash-hero-telemetry-badge">
+            <div class="stream-telemetry-box">
+              <div class="telemetry-box-header">
+                <span class="pulse-indicator-green"></span>
+                <b>LIVE TELEMETRY STREAM</b>
+              </div>
+              <div class="telemetry-live-stat">
+                <span class="lbl">CURRENT READING (AVG)</span>
+                <b class="val" id="heroAvgTemp">24.6 °C</b>
+                <span class="sub" id="heroReadingSub">Updated Just now · 🟢 Live</span>
+              </div>
+              <div class="telemetry-grid-mini">
+                <div>
+                  <small>DB Pool Latency</small>
+                  <b id="heroDbLatency">1.2 ms</b>
+                </div>
+                <div>
+                  <small>Active Stations</small>
+                  <b id="heroActiveStations">8 Stations</b>
+                </div>
+                <div>
+                  <small>System Uptime</small>
+                  <b id="heroSystemUptime">100% (Healthy)</b>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 PRIMARY REAL-TIME READING CARDS -->
+        <div class="kpi-grid dashboard-kpi-grid">
+          <div class="kpi-card live-reading-card">
+            <div class="kpi-card-top">
+              <span class="kpi-lbl">SYSTEM STATUS</span>
+              <span class="status-indicator-pill live" id="kpiSystemStatusPill">🟢 Connected</span>
+            </div>
+            <b class="kpi-val" id="kpiSystemStatusVal">OPERATIONAL</b>
+            <small class="kpi-trend" id="kpiDbDetail">PostgreSQL 17 · Pool Active</small>
+            <div class="kpi-footer-metric">Response Latency: <b id="kpiLatencyText">1.2ms</b></div>
+          </div>
+
+          <div class="kpi-card live-reading-card">
+            <div class="kpi-card-top">
+              <span class="kpi-lbl">CURRENT CLIMATE READING</span>
+              <span class="status-indicator-pill live">🟢 Live Feed</span>
+            </div>
+            <b class="kpi-val" id="kpiCurrentTemp">28.4 °C</b>
+            <small class="kpi-trend" id="kpiCurrentUV">☀️ UV 6.2 (High) · AQI 32</small>
+            <div class="kpi-footer-metric">Location: <b id="kpiClimateLoc">Pondicherry Coast</b></div>
+          </div>
+
+          <div class="kpi-card live-reading-card">
+            <div class="kpi-card-top">
+              <span class="kpi-lbl">PLATFORM REVENUE & BOOKINGS</span>
+              <span class="status-indicator-pill success">💎 Synced</span>
+            </div>
+            <b class="kpi-val" id="kpiGrossRevenue">₹145,000</b>
+            <small class="kpi-trend" id="kpiTotalBookings">18 Confirmed Bookings</small>
+            <div class="kpi-footer-metric">Average Order Value: <b id="kpiAOVVal">₹8,055</b></div>
+          </div>
+
+          <div class="kpi-card live-reading-card">
+            <div class="kpi-card-top">
+              <span class="kpi-lbl">TOTAL OPERATIONS PERFORMED</span>
+              <span class="status-indicator-pill processing" id="kpiOpsPill">⚡ Active</span>
+            </div>
+            <b class="kpi-val" id="kpiTotalOpsVal">142</b>
+            <small class="kpi-trend">All Subsystems Monitored</small>
+            <div class="kpi-footer-metric">Open Support Tickets: <b id="kpiOpenTickets">0</b></div>
+          </div>
+        </div>
+
+        <!-- REAL-TIME DESTINATION ENVIRONMENTAL TELEMETRY MATRIX -->
+        <div class="section-container" style="padding-top: 30px;">
+          <div class="section-header-row">
+            <div>
+              <span class="kicker-tag">REAL-TIME WEATHER & AIR SENSORS</span>
+              <h2 class="section-heading">Live Destination Telemetry Grid</h2>
+              <p class="text-muted">Real-time fluctuating readings for temperature, UV index, air quality (AQI), humidity, wind, and barometric pressure across all 8 regions.</p>
+            </div>
+            <div class="telemetry-speed-controls">
+              <label>Stream Rate:</label>
+              <select id="telemetryRateSelect" onchange="changeTelemetryRate(this.value)">
+                <option value="2000">Fast (2s)</option>
+                <option value="3000" selected>Normal (3s)</option>
+                <option value="5000">Relaxed (5s)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="telemetry-sensor-grid" id="telemetrySensorGrid">
+            <!-- Dynamically populated via JavaScript with real-time sensor cards -->
+          </div>
+        </div>
+
+        <!-- DATA VISUALIZATIONS SECTION (CHART.JS REAL DATA) -->
+        <div class="section-container" style="padding-top: 30px;">
+          <div class="section-header-row">
+            <div>
+              <span class="kicker-tag">LIVE DATA VISUALIZATION</span>
+              <h2 class="section-heading">Platform Telemetry & Analytics Charts</h2>
+              <p class="text-muted">Interactive visual analytics populated with real PostgreSQL records and live environmental sensor data.</p>
+            </div>
+          </div>
+
+          <div class="charts-grid-layout">
+            <!-- Chart 1: Climate & AQI Matrix -->
+            <div class="chart-card-box">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Destination Climate, UV & AQI Comparison</h3>
+                  <small class="text-muted">Real-time multi-metric comparison across all destinations</small>
+                </div>
+                <span class="badge-pill">LIVE SENSORS</span>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chartClimateComparison"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Category Revenue & Booking Distribution -->
+            <div class="chart-card-box">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Booking Mix & Category Revenue</h3>
+                  <small class="text-muted">Stays, flights, tours, and packages distribution</small>
+                </div>
+                <span class="badge-pill">DATABASE SYNC</span>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chartCategoryRevenue"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 3: Live Database Response Latency Monitor -->
+            <div class="chart-card-box chart-full-width">
+              <div class="chart-header">
+                <div>
+                  <h3 class="chart-title">Real-Time Database Latency & Telemetry Stream (ms)</h3>
+                  <small class="text-muted">Live tick-by-tick query performance and connection pool response time</small>
+                </div>
+                <span class="status-indicator-pill live">🟢 Stream Active</span>
+              </div>
+              <div class="chart-canvas-wrap" style="height: 220px;">
+                <canvas id="chartLatencyStream"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SYSTEM DIAGNOSTICS & ALL OPERATIONS CONTROL PANEL -->
+        <div class="section-container" style="padding-top: 30px;">
+          <div class="dashboard-split-layout">
+            <!-- Operations Matrix Card -->
+            <div class="dash-card-box">
+              <div class="dash-card-header">
+                <div>
+                  <span class="kicker-tag">OPERATIONS DIRECTORY</span>
+                  <h3 class="dash-card-title">All Available System Operations</h3>
+                  <p class="text-muted">Directly trigger every existing workflow from this central dashboard.</p>
+                </div>
+              </div>
+
+              <div class="operations-button-grid">
+                <button class="op-button-card" onclick="switchTab('discover')">
+                  <span class="op-icon">🏖️</span>
+                  <b>Destination Explorer</b>
+                  <small>Filter, budget slider & details</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('discover'); document.getElementById('matcherResultsContainer').scrollIntoView({behavior:'smooth'});">
+                  <span class="op-icon">🎯</span>
+                  <b>AI Destination Matcher</b>
+                  <small>Personalized travel quiz</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('stays')">
+                  <span class="op-icon">🏨</span>
+                  <b>Resort Reservations</b>
+                  <small>Room tiers & addon packages</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('attractions')">
+                  <span class="op-icon">📍</span>
+                  <b>Attractions Guide</b>
+                  <small>POIs, insider tips & GPS</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('dining')">
+                  <span class="op-icon">🍽️</span>
+                  <b>Culinary Directory</b>
+                  <small>Dietary filters & dishes</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('navigation')">
+                  <span class="op-icon">🧭</span>
+                  <b>Interactive Routing Map</b>
+                  <small>Multi-day waypoint circuits</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('flights')">
+                  <span class="op-icon">✈️</span>
+                  <b>Air Ticketing</b>
+                  <small>Instant boarding passes</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('tours')">
+                  <span class="op-icon">🎒</span>
+                  <b>Outdoor Activities</b>
+                  <small>Rafting, safaris & scuba</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('planner')">
+                  <span class="op-icon">✦</span>
+                  <b>AI Itinerary Planner</b>
+                  <small>Custom day plans & PDF export</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('trips')">
+                  <span class="op-icon">🧳</span>
+                  <b>Bookings & Invoices</b>
+                  <small>GST tax receipts & refunds</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="switchTab('wishlist')">
+                  <span class="op-icon">❤️</span>
+                  <b>Saved Wishlist</b>
+                  <small>Bookmarked destinations</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+
+                <button class="op-button-card" onclick="openSupportModal()">
+                  <span class="op-icon">💬</span>
+                  <b>Concierge Helpdesk</b>
+                  <small>Submit & track support</small>
+                  <span class="op-status-badge idle">⚪ Ready</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Diagnostics & Self-Test Panel -->
+            <div class="dash-card-box">
+              <div class="dash-card-header">
+                <div>
+                  <span class="kicker-tag">AUTOMATED DIAGNOSTICS</span>
+                  <h3 class="dash-card-title">Live System Diagnostics & Self-Test</h3>
+                  <p class="text-muted">Validate all 4 platform subsystems with latency benchmarks.</p>
+                </div>
+                <button class="btn-primary" id="btnRunDiagnostics" onclick="runDiagnosticsSelfTest()">▶ Run Self-Test</button>
+              </div>
+
+              <div class="diagnostics-test-list" id="diagnosticsTestList">
+                <div class="diag-item" id="diagTest1">
+                  <div class="diag-icon">💾</div>
+                  <div class="diag-info">
+                    <b>PostgreSQL 17 Database Connectivity</b>
+                    <small id="diagTest1Detail">Ready for health check benchmark</small>
+                  </div>
+                  <span class="diag-badge" id="diagTest1Badge">⚪ Idle</span>
+                </div>
+
+                <div class="diag-item" id="diagTest2">
+                  <div class="diag-icon">📑</div>
+                  <div class="diag-info">
+                    <b>Relational Tables & Schema Migration</b>
+                    <small id="diagTest2Detail">13 PostgreSQL tables integrity validation</small>
+                  </div>
+                  <span class="diag-badge" id="diagTest2Badge">⚪ Idle</span>
+                </div>
+
+                <div class="diag-item" id="diagTest3">
+                  <div class="diag-icon">💎</div>
+                  <div class="diag-info">
+                    <b>Tax, Tariff & Invoicing Engine</b>
+                    <small id="diagTest3Detail">GST 12% & multi-currency math engine</small>
+                  </div>
+                  <span class="diag-badge" id="diagTest3Badge">⚪ Idle</span>
+                </div>
+
+                <div class="diag-item" id="diagTest4">
+                  <div class="diag-icon">☀️</div>
+                  <div class="diag-info">
+                    <b>Environmental Telemetry & Weather Stations</b>
+                    <small id="diagTest4Detail">8 destination live telemetry sensor feeds</small>
+                  </div>
+                  <span class="diag-badge" id="diagTest4Badge">⚪ Idle</span>
+                </div>
+              </div>
+
+              <div class="diag-summary-box hidden" id="diagSummaryBox">
+                <b id="diagOverallStatus">All Systems 100% Operational 🟢</b>
+                <small id="diagTimestamp">Completed just now</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT PLATFORM ACTIVITY STREAM -->
+        <div class="section-container" style="padding-top: 30px;">
+          <div class="section-header-row">
+            <div>
+              <span class="kicker-tag">AUDIT TRAIL</span>
+              <h2 class="section-heading">Real-Time Platform Activity Stream</h2>
+              <p class="text-muted">Live event stream of confirmed reservations, itinerary generations, and customer interactions.</p>
+            </div>
+            <button class="btn-secondary" onclick="loadMyTrips(); switchTab('trips');">View All Bookings ↗</button>
+          </div>
+
+          <div class="activity-feed-table-wrap">
+            <table class="activity-feed-table">
+              <thead>
+                <tr>
+                  <th>Event Type</th>
+                  <th>Reference / Item</th>
+                  <th>Destination</th>
+                  <th>Amount / Details</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="activityFeedTbody">
+                <!-- Dynamically loaded via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 1: DISCOVER & EXPLORE DESTINATIONS         -->
+    <!-- ============================================== -->
+    <section id="tab-discover" class="tab-pane">
+      <!-- Hero Banner -->
+      <div class="hero-showcase">
+        <div class="hero-content">
+          <div class="badge-pill">PERSONALIZED DESTINATIONS & SMART ITINERARIES ✦</div>
+          <h1 class="hero-title">Discover your dream journey<br><em>tailored to you.</em></h1>
+          <p class="hero-subtext">Find perfect destinations based on your interests and budgets, book verified luxury stays, explore nearby attractions, discover local culinary gems, and navigate seamless day-by-day routes.</p>
+          
+          <!-- Unified Multi-Search Box -->
+          <div class="search-hub-bar">
+            <div class="search-input-field">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="destSearchInput" placeholder="Search destination, state, or interest (e.g. Munnar, Beach, Food, Rafting)..." oninput="debounceDestSearch()">
+            </div>
+            <div class="search-select-field">
+              <select id="interestSelect" onchange="loadDestinations()">
+                <option value="all">All Interests</option>
+                <option value="beach">🏖️ Beach & Coastal</option>
+                <option value="nature">🌲 Nature & Hills</option>
+                <option value="adventure">🧗 Adventure & Rafting</option>
+                <option value="history">🏰 History & Palaces</option>
+                <option value="food">🍲 Food & Wine</option>
+                <option value="wellness">🧘 Wellness & Spa</option>
+                <option value="spiritual">🛕 Spiritual & Heritage</option>
+                <option value="romantic">💖 Romantic Getaways</option>
+              </select>
+            </div>
+            <div class="search-select-field">
+              <select id="sortSelect" onchange="loadDestinations()">
+                <option value="rating">★ Highest Rated</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="days">Duration: Short to Long</option>
+              </select>
+            </div>
+            <button class="btn-primary" onclick="loadDestinations()">Search</button>
+          </div>
+        </div>
+
+        <div class="hero-media-card">
+          <img src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85" alt="Travel Destination">
+          <div class="hero-floating-badge">
+            <b>SMART RECOMMENDATION ENGINE</b>
+            <span>Personalized Matcher ✦</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SMART MATCHER & PERSONALIZATION WIZARD -->
+      <div class="section-container smart-matcher-section">
+        <div class="matcher-card">
+          <div class="matcher-header">
+            <div class="matcher-badge">✦ AI TRIP MATCHING ENGINE</div>
+            <h2>Find My Perfect Destination (Personalized Quiz)</h2>
+            <p class="text-muted">Select your travel style, budget, companion, and passions — our engine calculates exact match scores and personalized day plans.</p>
+          </div>
+
+          <div class="matcher-grid">
+            <!-- Step 1: Passions & Interests -->
+            <div class="matcher-group">
+              <label class="matcher-label">1. What are your travel interests? (Select multiple)</label>
+              <div class="chips-container" id="quizInterestChips">
+                <button type="button" class="quiz-chip active" data-val="beach" onclick="toggleQuizChip(this)">🏖️ Beaches</button>
+                <button type="button" class="quiz-chip active" data-val="nature" onclick="toggleQuizChip(this)">🌲 Nature & Hills</button>
+                <button type="button" class="quiz-chip" data-val="adventure" onclick="toggleQuizChip(this)">🧗 Adventure</button>
+                <button type="button" class="quiz-chip" data-val="history" onclick="toggleQuizChip(this)">🏰 Heritage & Forts</button>
+                <button type="button" class="quiz-chip active" data-val="food" onclick="toggleQuizChip(this)">🍲 Gourmet Food</button>
+                <button type="button" class="quiz-chip" data-val="wellness" onclick="toggleQuizChip(this)">🧘 Wellness & Spa</button>
+                <button type="button" class="quiz-chip" data-val="spiritual" onclick="toggleQuizChip(this)">🛕 Spiritual</button>
+                <button type="button" class="quiz-chip" data-val="romantic" onclick="toggleQuizChip(this)">💖 Romantic</button>
+              </div>
+            </div>
+
+            <!-- Step 2: Budget & Duration -->
+            <div class="matcher-group-row">
+              <div class="matcher-subgroup">
+                <label class="matcher-label">2. Maximum Budget Per Person</label>
+                <div class="range-display-row">
+                  <span id="quizBudgetVal" class="price-highlight">₹15,000</span>
+                  <small class="text-muted">(Includes stay + food + activities)</small>
+                </div>
+                <input type="range" id="quizBudgetRange" min="5000" max="30000" step="1000" value="15000" oninput="updateQuizBudget(this.value)">
+              </div>
+
+              <div class="matcher-subgroup">
+                <label class="matcher-label">3. Trip Duration</label>
+                <select id="quizDaysSelect" class="matcher-select">
+                  <option value="2">2 Days (Weekend Quickie)</option>
+                  <option value="3" selected>3 Days (Classic Tour)</option>
+                  <option value="4">4 Days (Relaxed Getaway)</option>
+                  <option value="5">5 Days (Complete Vacation)</option>
+                  <option value="7">7 Days (Grand Explorer)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Step 3: Companion & Pace -->
+            <div class="matcher-group-row">
+              <div class="matcher-subgroup">
+                <label class="matcher-label">4. Travelling Companion</label>
+                <select id="quizCompanionSelect" class="matcher-select">
+                  <option value="couple" selected>💑 Couple / Romantic</option>
+                  <option value="solo">🎒 Solo Explorer</option>
+                  <option value="family">👨‍👩‍👧‍👦 Family with Kids</option>
+                  <option value="friends">🥳 Friends Squad</option>
+                </select>
+              </div>
+
+              <div class="matcher-subgroup">
+                <label class="matcher-label">5. Travel Pace</label>
+                <select id="quizPaceSelect" class="matcher-select">
+                  <option value="relaxed">☕ Relaxed & Leisurely</option>
+                  <option value="balanced" selected>🌟 Balanced Sightseeing</option>
+                  <option value="fast">⚡ Fast-Paced / Action-Packed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="matcher-action-row">
+            <button class="btn-primary btn-large" onclick="runPersonalizedMatcher()">
+              ✦ Calculate My Best Destination Matches
+            </button>
+          </div>
+
+          <!-- Matched Results Output -->
+          <div id="matcherResultsContainer" class="matcher-results-box hidden">
+            <div class="results-header-bar">
+              <h3>🎯 Recommended Destinations Based On Your Profile</h3>
+              <span class="badge-gold" id="matcherSummaryBadge">Top Matches Found</span>
+            </div>
+            <div id="matcherResultsGrid" class="matched-cards-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Destinations Catalog Section -->
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">CURATED REGIONS</span>
+            <h2 class="section-heading">All Destinations Catalog</h2>
+            <p class="text-muted">Explore verified destinations with live weather, AQI index, package pricing tiers, and direct itinerary links.</p>
+          </div>
+          <div class="budget-slider-box">
+            <label>Max Budget: <b id="budgetDisplay">₹25,000</b></label>
+            <input type="range" id="budgetRange" min="4000" max="25000" step="500" value="25000" oninput="updateBudgetSlider(this.value)">
+          </div>
+        </div>
+
+        <div id="destinationGrid" class="destination-cards-grid">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 2: CURATED STAYS & RESORTS                 -->
+    <!-- ============================================== -->
+    <section id="tab-stays" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">HANDPICKED LUXURY & HOMESTAYS</span>
+            <h2 class="section-heading">Curated Resorts & Accommodations</h2>
+            <p class="text-muted">Verified accommodations with transparent room tier pricing, complimentary buffet breakfasts, pool access, and member discounts.</p>
+          </div>
+          <div class="filter-controls-row">
+            <select id="hotelPlaceFilter" onchange="loadHotels()">
+              <option value="">All Destinations</option>
+              <option value="Pondicherry">Pondicherry</option>
+              <option value="Munnar">Munnar</option>
+              <option value="Jaipur">Jaipur</option>
+              <option value="Goa">Goa</option>
+              <option value="Ooty">Ooty</option>
+              <option value="Rishikesh">Rishikesh</option>
+              <option value="Kashmir">Kashmir</option>
+              <option value="Varanasi">Varanasi</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="hotelGrid" class="hotel-cards-grid">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 3: NEARBY ATTRACTIONS & SIGHTSEEING        -->
+    <!-- ============================================== -->
+    <section id="tab-attractions" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">LOCAL HIGHLIGHTS & POIS</span>
+            <h2 class="section-heading">Nearby Attractions & Sights</h2>
+            <p class="text-muted">Explore top-rated historical monuments, viewpoints, nature reserves, and spiritual sites with entry fees and insider tips.</p>
+          </div>
+        </div>
+
+        <!-- Attraction Filter Bar -->
+        <div class="filter-bar-card">
+          <div class="filter-item">
+            <label>Destination</label>
+            <select id="attractionDestFilter" onchange="loadAttractions()">
+              <option value="">All Destinations</option>
+              <option value="pondicherry">Pondicherry</option>
+              <option value="munnar">Munnar</option>
+              <option value="jaipur">Jaipur</option>
+              <option value="goa">Goa</option>
+              <option value="ooty">Ooty</option>
+              <option value="rishikesh">Rishikesh</option>
+              <option value="kashmir">Kashmir</option>
+              <option value="varanasi">Varanasi</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Category</label>
+            <select id="attractionCatFilter" onchange="loadAttractions()">
+              <option value="all">All Categories</option>
+              <option value="Heritage">🏰 Heritage & Forts</option>
+              <option value="Nature">🌲 Nature & Waterfalls</option>
+              <option value="Viewpoint">🌅 Scenic Viewpoints</option>
+              <option value="Adventure">🧗 Adventure & Sports</option>
+              <option value="Spiritual">🛕 Spiritual & Temples</option>
+              <option value="Architecture">🏛️ Architecture & Art</option>
+              <option value="Culture">🎭 Culture & Bazaars</option>
+            </select>
+          </div>
+          <div class="filter-item search-grow">
+            <label>Search Sights</label>
+            <input type="text" id="attractionSearchInput" placeholder="Search by name, highlight, or keyword..." oninput="debounceAttractionsSearch()">
+          </div>
+          <button class="btn-primary align-self-end" onclick="loadAttractions()">Filter Sights</button>
+        </div>
+
+        <div id="attractionsGrid" class="attractions-cards-grid">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 4: RESTAURANTS & CULINARY EXPERIENCES      -->
+    <!-- ============================================== -->
+    <section id="tab-dining" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">REGIONAL FLAVORS & FINE DINING</span>
+            <h2 class="section-heading">Culinary Guide & Restaurants</h2>
+            <p class="text-muted">Curated authentic dining spots, heritage royal feasts, coastal seafood shacks, and artisan cafes with signature dishes and dietary options.</p>
+          </div>
+        </div>
+
+        <!-- Dining Filter Bar -->
+        <div class="filter-bar-card">
+          <div class="filter-item">
+            <label>Destination</label>
+            <select id="diningDestFilter" onchange="loadRestaurants()">
+              <option value="">All Destinations</option>
+              <option value="pondicherry">Pondicherry</option>
+              <option value="munnar">Munnar</option>
+              <option value="jaipur">Jaipur</option>
+              <option value="goa">Goa</option>
+              <option value="ooty">Ooty</option>
+              <option value="rishikesh">Rishikesh</option>
+              <option value="kashmir">Kashmir</option>
+              <option value="varanasi">Varanasi</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Dietary Preference</label>
+            <select id="diningDietFilter" onchange="loadRestaurants()">
+              <option value="all">All Dietary Options</option>
+              <option value="Pure Veg">🥗 Pure Vegetarian</option>
+              <option value="Vegan Friendly">🌱 Vegan Friendly</option>
+              <option value="Halal">🥩 Halal Certified</option>
+              <option value="Seafood">🦐 Fresh Coastal Seafood</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>Price Tier</label>
+            <select id="diningPriceFilter" onchange="loadRestaurants()">
+              <option value="all">All Price Tiers</option>
+              <option value="₹">₹ Smart Budget (Under ₹500)</option>
+              <option value="₹₹">₹₹ Moderate (₹500 - ₹1500)</option>
+              <option value="₹₹₹">₹₹₹ Fine Dining (₹1500 - ₹3000)</option>
+              <option value="₹₹₹₹">₹₹₹₹ Royal Luxury (₹3000+)</option>
+            </select>
+          </div>
+          <div class="filter-item search-grow">
+            <label>Search Cuisine / Dish</label>
+            <input type="text" id="diningSearchInput" placeholder="Search by restaurant name, cuisine, or dish..." oninput="debounceRestaurantsSearch()">
+          </div>
+          <button class="btn-primary align-self-end" onclick="loadRestaurants()">Filter Food</button>
+        </div>
+
+        <div id="restaurantsGrid" class="restaurants-cards-grid">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 5: INTERACTIVE MAP & NAVIGATION SUPPORT    -->
+    <!-- ============================================== -->
+    <section id="tab-navigation" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">GEOSPATIAL ROUTING & TURN-BY-TURN GUIDANCE</span>
+            <h2 class="section-heading">Interactive Map & Route Navigator</h2>
+            <p class="text-muted">Visualize destinations, hotels, attractions, dining stops, and daily navigation circuits with GPS coordinates and direction links.</p>
+          </div>
+
+          <!-- Destination Switcher -->
+          <div class="map-dest-switcher">
+            <label>Select Destination:</label>
+            <select id="navDestSelect" onchange="switchNavDestination(this.value)">
+              <option value="pondicherry" selected>Pondicherry (Tamil Nadu)</option>
+              <option value="munnar">Munnar (Kerala)</option>
+              <option value="jaipur">Jaipur (Rajasthan)</option>
+              <option value="goa">Goa (Goa)</option>
+              <option value="ooty">Ooty (Tamil Nadu)</option>
+              <option value="rishikesh">Rishikesh (Uttarakhand)</option>
+              <option value="kashmir">Kashmir (Srinagar & Gulmarg)</option>
+              <option value="varanasi">Varanasi (Uttar Pradesh)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Layer Toggles -->
+        <div class="map-controls-toolbar">
+          <span class="toolbar-title">Map Layers:</span>
+          <button class="map-filter-btn active" data-layer="hotel" onclick="toggleMapLayer('hotel', this)">🏨 Hotels & Stays</button>
+          <button class="map-filter-btn active" data-layer="attraction" onclick="toggleMapLayer('attraction', this)">📍 Attractions</button>
+          <button class="map-filter-btn active" data-layer="restaurant" onclick="toggleMapLayer('restaurant', this)">🍴 Dining & Cafes</button>
+          <button class="map-filter-btn active" data-layer="route" onclick="toggleMapLayer('route', this)">🛣️ Daily Circuit Route</button>
+          <button class="btn-secondary" onclick="fitMapBounds()" style="margin-left: auto;">⛶ Reset View</button>
+        </div>
+
+        <!-- Map & Waypoints Container -->
+        <div class="map-navigation-layout">
+          <!-- Leaflet Interactive Map -->
+          <div class="map-container-box">
+            <div id="interactiveMap" class="leaflet-map-view"></div>
+            <div class="map-legend-overlay">
+              <span class="legend-item"><span class="legend-dot dot-hotel"></span> Hotel</span>
+              <span class="legend-item"><span class="legend-dot dot-attraction"></span> Sight</span>
+              <span class="legend-item"><span class="legend-dot dot-restaurant"></span> Dining</span>
+              <span class="legend-item"><span class="legend-dot dot-route"></span> Route</span>
+            </div>
+          </div>
+
+          <!-- Day-by-Day Circuit Guidance Sidebar -->
+          <div class="map-waypoints-sidebar">
+            <div class="waypoints-header">
+              <h3 id="navRouteTitle">Daily Navigation Circuit</h3>
+              <p id="navRouteSummary" class="text-muted">Estimated distance: 14.5 km · 45 mins transit</p>
+              <div class="route-day-selector" id="routeDaySelector">
+                <!-- Day buttons populated via JS -->
+              </div>
+            </div>
+
+            <div id="waypointsList" class="waypoints-step-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 6: FLIGHTS & TRANSPORT                     -->
+    <!-- ============================================== -->
+    <section id="tab-flights" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">DOMESTIC & INTERNATIONAL AIRWAYS</span>
+            <h2 class="section-heading">Flight Reservations</h2>
+            <p class="text-muted">Direct scheduled flights with instant boarding pass issuance and verified baggage allowances.</p>
+          </div>
+        </div>
+
+        <!-- Flight Search Widget -->
+        <div class="flight-search-bar">
+          <div class="form-group">
+            <label>Origin</label>
+            <input type="text" id="flightOriginInput" placeholder="e.g. Delhi, Mumbai, Chennai" oninput="loadFlights()">
+          </div>
+          <div class="form-group">
+            <label>Destination</label>
+            <input type="text" id="flightDestInput" placeholder="e.g. Goa, Pondicherry, Srinagar" oninput="loadFlights()">
+          </div>
+          <div class="form-group">
+            <label>Travel Date</label>
+            <input type="date" id="flightDateInput" value="2026-09-15">
+          </div>
+          <button class="btn-primary" onclick="loadFlights()">Find Flights ✈️</button>
+        </div>
+
+        <div id="flightsList" class="flight-cards-list">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 7: TOURS & EXPERIENCES                     -->
+    <!-- ============================================== -->
+    <section id="tab-tours" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">LOCAL CURATED EXPERIENCES</span>
+            <h2 class="section-heading">Tours & Adventure Activities</h2>
+            <p class="text-muted">PADI diving, high-altitude 4x4 safaris, heritage culinary trails, and whitewater rafting.</p>
+          </div>
+        </div>
+
+        <div id="toursGrid" class="tours-cards-grid">
+          <!-- Dynamically loaded via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 8: AI SMART PERSONALIZED ITINERARY PLANNER -->
+    <!-- ============================================== -->
+    <section id="tab-planner" class="tab-pane">
+      <div class="planner-layout">
+        <div class="planner-sidebar">
+          <span class="kicker-tag">INTELLIGENT TRAVEL AGENT</span>
+          <h2 class="section-heading">Smart AI Travel Planner</h2>
+          <p class="text-muted">Generate a custom day-by-day itinerary with exact sightseeing stops, curated dining, itemized budget, and route waypoints.</p>
+
+          <form id="plannerForm" onsubmit="generateAIItinerary(event)" class="planner-controls-card">
+            <div class="form-group">
+              <label>Select Destination</label>
+              <select id="planDestSelect">
+                {% for d in destinations %}
+                  <option value="{{ d.name }}">{{ d.name }} ({{ d.state }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Duration</label>
+              <select id="planDaysSelect">
+                <option value="2">2 Days (Weekend Getaway)</option>
+                <option value="3" selected>3 Days (Classic Tour)</option>
+                <option value="4">4 Days (Extended Stay)</option>
+                <option value="5">5 Days (Complete Deep Dive)</option>
+                <option value="7">7 Days (Ultimate Grand Tour)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Travel Style</label>
+              <select id="planStyleSelect">
+                <option value="Balanced" selected>🌟 Balanced & Highlights</option>
+                <option value="Adventure">🧗 Adventure & Outdoors</option>
+                <option value="Cultural">🏰 Heritage & Culture</option>
+                <option value="Relaxation">🧘 Spa & Coastal Relaxation</option>
+                <option value="Foodie">🍲 Gourmet Culinary Trail</option>
+                <option value="Spiritual">🛕 Spiritual & Soulful</option>
+                <option value="Romantic">💖 Romantic Escapes</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Budget Tier</label>
+              <select id="planBudgetTier">
+                <option value="Budget">💰 Smart Budget</option>
+                <option value="Moderate" selected>💎 Balanced Premium</option>
+                <option value="Luxury">👑 Ultra Luxury & Butler</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Travel Companions</label>
+              <select id="planCompanionSelect">
+                <option value="Couple" selected>💑 Couple / Romantic</option>
+                <option value="Solo">🎒 Solo Explorer</option>
+                <option value="Family">👨‍👩‍👧‍👦 Family with Kids</option>
+                <option value="Friends">🥳 Friends Squad</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Pace Preference</label>
+              <select id="planPaceSelect">
+                <option value="Relaxed">☕ Relaxed (Late mornings & leisurely dining)</option>
+                <option value="Balanced" selected>🌟 Balanced (Standard sightseeing pace)</option>
+                <option value="Fast-paced">⚡ Fast-Paced (Cover all sights quickly)</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block">Generate Custom Plan ✦</button>
+          </form>
+        </div>
+
+        <div class="planner-results-view">
+          <div id="plannerEmptyState" class="planner-placeholder">
+            <div class="orbit-sparkle">✦</div>
+            <h3>Your tailored travel plan appears here</h3>
+            <p>Select your preferences on the left and click <b>Generate Custom Plan</b> to construct your day-by-day itinerary with verified attractions, curated dining, budget breakdown, and interactive route guidance.</p>
+          </div>
+
+          <div id="plannerOutput" class="planner-output-card hidden">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 9: MY TRIPS, BOOKINGS & INVOICES           -->
+    <!-- ============================================== -->
+    <section id="tab-trips" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">POSTGRESQL PERSISTENCE</span>
+            <h2 class="section-heading">My Bookings & Trips</h2>
+            <p class="text-muted">Manage your confirmed reservations, download official tax receipts, and access saved itineraries.</p>
+          </div>
+        </div>
+
+        <div class="trips-tabs-bar">
+          <button class="trips-subtab active" onclick="showTripSection('bookings')">🏨 Confirmed Bookings</button>
+          <button class="trips-subtab" onclick="showTripSection('itineraries')">🗺️ Saved Itineraries</button>
+        </div>
+
+        <div id="tripsBookingsView" class="trips-view-section">
+          <div id="myBookingsList" class="bookings-grid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div id="tripsItinerariesView" class="trips-view-section hidden">
+          <div id="myItinerariesList" class="itineraries-grid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 10: WISHLIST / SAVED PLACES                -->
+    <!-- ============================================== -->
+    <section id="tab-wishlist" class="tab-pane">
+      <div class="section-container">
+        <div class="section-header-row">
+          <div>
+            <span class="kicker-tag">SAVED FAVORITES</span>
+            <h2 class="section-heading">My Travel Wishlist</h2>
+            <p class="text-muted">Places, stays, attractions, and dining experiences you have bookmarked for future trips.</p>
+          </div>
+        </div>
+
+        <div id="wishlistGrid" class="wishlist-cards-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB 11: LOYALTY CLUB & REWARDS                 -->
+    <!-- ============================================== -->
+    <section id="tab-rewards" class="tab-pane">
+      <div class="section-container">
+        <div class="rewards-dashboard-card">
+          <div class="rewards-header">
+            <div>
+              <span class="badge-gold">👑 {{ current_user.tier }} TIER STATUS</span>
+              <h2>Wanderly Privilege Club</h2>
+              <p class="text-muted">Earn 5% points on every trip and redeem for free room upgrades and luxury dining credits.</p>
+            </div>
+            <div class="points-circle">
+              <span class="points-val">{{ current_user.loyalty_points }}</span>
+              <span class="points-lbl">Available Points</span>
+            </div>
+          </div>
+
+          <div class="rewards-perks-grid">
+            <div class="perk-box">
+              <span class="perk-icon">☕</span>
+              <b>Complimentary Breakfast</b>
+              <small>Valid at all partner luxury resorts</small>
+            </div>
+            <div class="perk-box">
+              <span class="perk-icon">🚗</span>
+              <b>Free Airport Transfers</b>
+              <small>Exclusive for Gold & Platinum tiers</small>
+            </div>
+            <div class="perk-box">
+              <span class="perk-icon">⚡</span>
+              <b>Priority 24/7 Concierge</b>
+              <small>Instant support assistance anytime</small>
+            </div>
+            <div class="perk-box">
+              <span class="perk-icon">🎁</span>
+              <b>Member Only Promo Codes</b>
+              <small>Extra up to 20% off on packages</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Promo Codes -->
+        <div style="margin-top: 40px;">
+          <h3 class="section-subheading">Active Promotional Coupons</h3>
+          <div class="coupons-grid">
+            {% for c in coupons %}
+              <div class="coupon-ticket">
+                <div class="coupon-left">
+                  <span class="coupon-badge">{{ c.discount_percent }}% OFF</span>
+                  <b>{{ c.code }}</b>
+                  <p>{{ c.description }}</p>
+                </div>
+                <div class="coupon-right">
+                  <small>Min. Spend ₹{{ "{:,.0f}".format(c.min_spend) }}</small>
+                  <button class="btn-copy" onclick="copyCouponCode('{{ c.code }}')">Copy Code</button>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MOBILE BOTTOM ACTION BAR -->
+  <div class="mobile-bottom-nav">
+    <button class="mobile-nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="m-icon">⚡</span>
+      <span class="m-label">Dashboard</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="discover" onclick="switchTab('discover')">
+      <span class="m-icon">🏖️</span>
+      <span class="m-label">Explore</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="stays" onclick="switchTab('stays')">
+      <span class="m-icon">🏨</span>
+      <span class="m-label">Stays</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="trips" onclick="switchTab('trips')">
+      <span class="m-icon">🧳</span>
+      <span class="m-label">Bookings</span>
+    </button>
+    <button class="mobile-nav-btn" onclick="toggleMobileDrawer()">
+      <span class="m-icon">☰</span>
+      <span class="m-label">Menu</span>
+    </button>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODALS CONTAINER                               -->
+  <!-- ============================================== -->
+  <div id="modalOverlay" class="modal-overlay hidden" onclick="handleOverlayClick(event)">
+    <div class="modal-card" id="modalCard">
+      <button class="modal-close-btn" onclick="closeModal()">×</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Leaflet Maps Script & Core Application Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

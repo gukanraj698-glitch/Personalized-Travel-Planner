@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wanderly · Enterprise Operations & Admin Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="admin-body">
+  <header class="app-header">
+    <div class="header-left">
+      <a class="brand-logo" href="/admin">
+        <span class="logo-box" style="background:#ff5252; color:white;">⚡</span>
+        <span class="logo-text">WANDERLY <b>OPERATIONS CONSOLE</b></span>
+      </a>
+      <span class="badge-pill" style="background:#ffeded; color:#d32f2f;">ADMIN PRIVILEGES</span>
+    </div>
+    <div class="header-right">
+      <a href="/" class="btn-secondary" style="font-size:12px; padding:8px 14px;">← Back to Traveller App</a>
+      <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <span id="themeIcon">🌙</span>
+      </button>
+      <div class="user-chip">
+        <span class="user-name">👑 {{ current_user.full_name }}</span>
+        <a href="/logout" style="margin-left: 10px; color: #ff5252; font-size: 12px; font-weight:700;">Log Out</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main" style="padding-top: 30px;">
+    <div class="section-container">
+      <div class="section-header-row">
+        <div>
+          <span class="kicker-tag">EXECUTIVE OVERVIEW</span>
+          <h1 class="section-heading">Platform Operations & Metrics</h1>
+          <p class="text-muted">Real-time revenue monitoring, booking lifecycle management, customer loyalty administration, and support resolution.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span class="status-indicator-pill live">🟢 Live Synced</span>
+          <button class="btn-primary" onclick="loadAdminData()">🔄 Refresh Live Data</button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-lbl">Total Gross Revenue</span>
+          <b class="kpi-val" id="kpiRevenue">₹0</b>
+          <small class="kpi-trend">🟢 100% PostgreSQL Synced</small>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Total Bookings</span>
+          <b class="kpi-val" id="kpiBookings">0</b>
+          <small class="kpi-trend">Stays, Flights & Tours</small>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Average Order Value</span>
+          <b class="kpi-val" id="kpiAOV">₹0</b>
+          <small class="kpi-trend">Per Transaction</small>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Registered Users</span>
+          <b class="kpi-val" id="kpiUsers">0</b>
+          <small class="kpi-trend">Verified Accounts</small>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-lbl">Open Support Tickets</span>
+          <b class="kpi-val" id="kpiTickets" style="color:#d32f2f;">0</b>
+          <small class="kpi-trend">Awaiting Response</small>
+        </div>
+      </div>
+
+      <!-- Admin Tab Switcher -->
+      <div class="trips-tabs-bar" style="margin-top: 40px;">
+        <button class="trips-subtab active" id="tabBtnBookings" onclick="switchAdminSubtab('bookings')">📑 Booking Operations</button>
+        <button class="trips-subtab" id="tabBtnUsers" onclick="switchAdminSubtab('users')">👥 User & Loyalty Registry</button>
+        <button class="trips-subtab" id="tabBtnTickets" onclick="switchAdminSubtab('tickets')">💬 Customer Support Inbox</button>
+      </div>
+
+      <!-- Section 1: Bookings Management -->
+      <div id="adminBookingsSection" class="admin-subtab-pane active">
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Booking Ref</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Item / Hotel</th>
+                <th>Dates</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminBookingsTbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 2: Users Management -->
+      <div id="adminUsersSection" class="admin-subtab-pane hidden">
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Phone</th>
+                <th>Loyalty Points</th>
+                <th>Tier</th>
+                <th>Joined Date</th>
+                <th>Manage</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section 3: Support Tickets -->
+      <div id="adminTicketsSection" class="admin-subtab-pane hidden">
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Ticket Ref</th>
+                <th>Customer</th>
+                <th>Category</th>
+                <th>Subject</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Message</th>
+                <th>Admin Reply</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminTicketsTbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Admin Modal Overlay -->
+  <div id="adminModalOverlay" class="modal-overlay hidden" onclick="handleAdminOverlayClick(event)">
+    <div class="modal-card" id="adminModalCard">
+      <button class="modal-close-btn" onclick="closeAdminModal()">×</button>
+      <div id="adminModalBody"></div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      loadAdminData();
+    });
+
+    function switchAdminSubtab(tab) {
+      document.querySelectorAll(".admin-subtab-pane").forEach(p => p.classList.add("hidden"));
+      document.querySelectorAll(".trips-subtab").forEach(b => b.classList.remove("active"));
+      if (tab === 'bookings') {
+        document.getElementById("adminBookingsSection").classList.remove("hidden");
+        document.getElementById("tabBtnBookings").classList.add("active");
+      } else if (tab === 'users') {
+        document.getElementById("adminUsersSection").classList.remove("hidden");
+        document.getElementById("tabBtnUsers").classList.add("active");
+        loadAdminUsers();
+      } else if (tab === 'tickets') {
+        document.getElementById("adminTicketsSection").classList.remove("hidden");
+        document.getElementById("tabBtnTickets").classList.add("active");
+        loadAdminTickets();
+      }
+    }
+
+    async function loadAdminData() {
+      try {
+        let res = await fetch("/api/admin/metrics");
+        let d = await res.json();
+        if (d.kpis) {
+          document.getElementById("kpiRevenue").textContent = "₹" + Number(d.kpis.total_revenue).toLocaleString();
+          document.getElementById("kpiBookings").textContent = d.kpis.total_bookings;
+          document.getElementById("kpiAOV").textContent = "₹" + Number(d.kpis.avg_order_value).toLocaleString();
+          document.getElementById("kpiUsers").textContent = d.kpis.total_users;
+          document.getElementById("kpiTickets").textContent = d.kpis.open_tickets;
+        }
+
+        let tbody = document.getElementById("adminBookingsTbody");
+        if (d.recent_bookings && d.recent_bookings.length > 0) {
+          tbody.innerHTML = d.recent_bookings.map(b => `
+            <tr>
+              <td><b>${b.booking_ref}</b></td>
+              <td>${b.customer_name}<br><small class="text-muted">${b.customer_email}</small></td>
+              <td><span class="badge-type">${b.booking_type.toUpperCase()}</span></td>
+              <td>${b.item_name}<br><small class="text-muted">${b.place}</small></td>
+              <td>${b.check_in || 'N/A'} → ${b.check_out || 'N/A'}</td>
+              <td><b>₹${Number(b.total_amount).toLocaleString()}</b></td>
+              <td>
+                <select class="admin-status-select" onchange="updateBookingStatus('${b.booking_ref}', this.value, '${b.payment_status}')">
+                  <option value="confirmed" ${b.status==='confirmed'?'selected':''}>Confirmed</option>
+                  <option value="completed" ${b.status==='completed'?'selected':''}>Completed</option>
+                  <option value="cancelled" ${b.status==='cancelled'?'selected':''}>Cancelled</option>
+                </select>
+              </td>
+              <td><span class="badge-payment ${b.payment_status}">${b.payment_status.toUpperCase()}</span></td>
+              <td>
+                <button class="btn-secondary small" onclick="openInvoice('${b.booking_ref}')">Receipt</button>
+              </td>
+            </tr>
+          `).join("");
+        } else {
+          tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px;">No bookings found.</td></tr>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadAdminUsers() {
+      let res = await fetch("/api/admin/users");
+      let users = await res.json();
+      let tbody = document.getElementById("adminUsersTbody");
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><b>${u.full_name}</b></td>
+          <td>${u.email}</td>
+          <td><span class="badge-role ${u.role}">${u.role.toUpperCase()}</span></td>
+          <td>${u.phone || 'N/A'}</td>
+          <td>💎 ${u.loyalty_points}</td>
+          <td><span class="badge-gold">${u.tier}</span></td>
+          <td>${u.created_at.split('T')[0]}</td>
+          <td>
+            <button class="btn-secondary small" onclick="openEditUserModal('${u.id}', '${u.full_name}', '${u.role}', ${u.loyalty_points}, '${u.tier}')">Edit</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadAdminTickets() {
+      let res = await fetch("/api/admin/tickets");
+      let tickets = await res.json();
+      let tbody = document.getElementById("adminTicketsTbody");
+      tbody.innerHTML = tickets.map(t => `
+        <tr>
+          <td><b>${t.ticket_ref}</b></td>
+          <td>${t.user_name}<br><small class="text-muted">${t.user_email}</small></td>
+          <td>${t.category}</td>
+          <td><b>${t.subject}</b></td>
+          <td><span class="badge-priority ${t.priority}">${t.priority}</span></td>
+          <td><span class="badge-status ${t.status}">${t.status}</span></td>
+          <td style="max-width:200px; font-size:11px;">${t.message}</td>
+          <td style="max-width:200px; font-size:11px; color:#2e7d32;">${t.admin_reply || '<i>No reply yet</i>'}</td>
+          <td>
+            <button class="btn-primary small" onclick="openReplyTicketModal('${t.id}', '${t.ticket_ref}', '${t.subject}', '${(t.admin_reply||'').replace(/'/g, "\\'")}')">Reply</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function updateBookingStatus(ref, status, payment) {
+      let res = await fetch(`/api/admin/bookings/${ref}/status`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({status: status, payment_status: status === 'cancelled' ? 'refunded' : payment})
+      });
+      let d = await res.json();
+      showToast(d.message);
+      loadAdminData();
+    }
+
+    function openEditUserModal(id, name, role, points, tier) {
+      let body = `
+        <h2>Edit User & Loyalty: ${name}</h2>
+        <form onsubmit="submitEditUser(event, '${id}')" style="display:grid; gap:12px; margin-top:20px;">
+          <div class="form-group">
+            <label>Role</label>
+            <select name="role" class="form-control">
+              <option value="user" ${role==='user'?'selected':''}>User (Regular Traveller)</option>
+              <option value="admin" ${role==='admin'?'selected':''}>Admin (Enterprise Operations)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Loyalty Points</label>
+            <input type="number" name="loyalty_points" value="${points}" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Membership Tier</label>
+            <select name="tier" class="form-control">
+              <option value="Bronze" ${tier==='Bronze'?'selected':''}>Bronze</option>
+              <option value="Silver" ${tier==='Silver'?'selected':''}>Silver</option>
+              <option value="Gold" ${tier==='Gold'?'selected':''}>Gold</option>
+              <option value="Platinum" ${tier==='Platinum'?'selected':''}>Platinum VIP</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Save User Changes</button>
+        </form>
+      `;
+      document.getElementById("adminModalBody").innerHTML = body;
+      document.getElementById("adminModalOverlay").classList.remove("hidden");
+    }
+
+    async function submitEditUser(e, id) {
+      e.preventDefault();
+      let form = new FormData(e.target);
+      let payload = Object.fromEntries(form.entries());
+      let res = await fetch(`/api/admin/users/${id}`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      let d = await res.json();
+      showToast(d.message);
+      closeAdminModal();
+      loadAdminUsers();
+    }
+
+    function openReplyTicketModal(id, ref, subject, currentReply) {
+      let body = `
+        <h2>Reply to Ticket: ${ref}</h2>
+        <p class="text-muted"><b>Subject:</b> ${subject}</p>
+        <form onsubmit="submitTicketReply(event, '${id}')" style="display:grid; gap:12px; margin-top:20px;">
+          <div class="form-group">
+            <label>Concierge Response Message</label>
+            <textarea name="reply" rows="4" class="form-control" required placeholder="Type your response to the customer...">${currentReply}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Ticket Status</label>
+            <select name="status" class="form-control">
+              <option value="Resolved" selected>Resolved</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Open">Open</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Send Response & Update</button>
+        </form>
+      `;
+      document.getElementById("adminModalBody").innerHTML = body;
+      document.getElementById("adminModalOverlay").classList.remove("hidden");
+    }
+
+    async function submitTicketReply(e, id) {
+      e.preventDefault();
+      let form = new FormData(e.target);
+      let payload = Object.fromEntries(form.entries());
+      let res = await fetch(`/api/admin/tickets/${id}/reply`, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      let d = await res.json();
+      showToast(d.message);
+      closeAdminModal();
+      loadAdminTickets();
+    }
+
+    function closeAdminModal() {
+      document.getElementById("adminModalOverlay").classList.add("hidden");
+    }
+
+    function handleAdminOverlayClick(e) {
+      if (e.target.id === "adminModalOverlay") closeAdminModal();
+    }
+  </script>
+</body>
+</html>
