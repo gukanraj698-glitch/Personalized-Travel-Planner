@@ -424,7 +424,7 @@
           {% endif %}
         {% endwith %}
 
-        <form method="post" class="main-auth-form" id="authForm">
+        <form method="post" action="{{ '/login' if mode=='login' else '/register' }}" class="main-auth-form" id="authForm">
           {% if mode == 'register' %}
             <div class="form-group">
               <label>Full Legal Name</label>
