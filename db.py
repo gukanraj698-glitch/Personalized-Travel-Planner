@@ -337,6 +337,8 @@ def init_db():
 
         # Seed initial data
         seed_data(conn)
+    except Exception as e:
+        print(f"[DB WARNING] Database init status: {e}")
 
 def seed_data(conn):
     with conn.cursor() as cur:
@@ -729,5 +731,3 @@ def seed_data(conn):
                 """, res)
 
             conn.commit()
-    except Exception as e:
-        print(f"[DB WARNING] Database init status: {e}")
